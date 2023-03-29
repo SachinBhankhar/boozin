@@ -21,7 +21,10 @@ class HomeController extends GetxController {
     ///requesting for permissions
     await Permission.activityRecognition.request();
     HealthFactory health = HealthFactory();
-    var types = [HealthDataType.ACTIVE_ENERGY_BURNED, HealthDataType.STEPS];
+    var types = [
+      HealthDataType.STEPS,
+      HealthDataType.ACTIVE_ENERGY_BURNED,
+    ];
 
     ///auth
     final requested = await health.requestAuthorization(types, permissions: [
@@ -31,15 +34,27 @@ class HomeController extends GetxController {
     if (requested) {
       try {
         final now = DateTime.now();
+        final midnight = DateTime(now.year, now.month, now.day);
+
         //getting data from google fit/ HealthKit
-        healthData = await health.getHealthDataFromTypes(
-            now.subtract(const Duration(days: 1)), now, types);
-        //Assign calories
-        calories.value =
-            (healthData.first.value as NumericHealthValue).numericValue.toInt();
+        healthData = await health.getHealthDataFromTypes(midnight, now, types);
+
+        ///Assign calories
+        //in case of mutiple data objects
+        final caloriesList = healthData
+            .where((element) =>
+                element.type == HealthDataType.ACTIVE_ENERGY_BURNED)
+            .toList();
+        //sorting to get latest
+        caloriesList.sort((a, b) => a.dateTo.compareTo(b.dateTo));
+        calories.value = (caloriesList.last.value as NumericHealthValue)
+            .numericValue
+            .toInt();
+
         //Assign Steps
-        calories.value =
-            (healthData.first.value as NumericHealthValue).numericValue.toInt();
+        steps.value =
+            (await health.getTotalStepsInInterval(midnight, now)) ?? 0;
+
         loading.value = false;
       } catch (e) {
         showError(AppStrings.errorNoData);
