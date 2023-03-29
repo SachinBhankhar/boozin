@@ -39,6 +39,10 @@ class HomeController extends GetxController {
         //getting data from google fit/ HealthKit
         healthData = await health.getHealthDataFromTypes(midnight, now, types);
 
+        //Assign Steps
+        steps.value =
+            (await health.getTotalStepsInInterval(midnight, now)) ?? 0;
+
         ///Assign calories
         //in case of mutiple data objects
         final caloriesList = healthData
@@ -50,10 +54,6 @@ class HomeController extends GetxController {
         calories.value = (caloriesList.last.value as NumericHealthValue)
             .numericValue
             .toInt();
-
-        //Assign Steps
-        steps.value =
-            (await health.getTotalStepsInInterval(midnight, now)) ?? 0;
 
         loading.value = false;
       } catch (e) {
